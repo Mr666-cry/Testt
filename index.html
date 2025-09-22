@@ -231,11 +231,13 @@
         let currentRoomId = null;
         let messagesRef = null;
 
-        const storedUser = localStorage.getItem('chat_user');
-        if (storedUser) {
-            currentUser = JSON.parse(storedUser);
-            showRoomSelectionScreen();
-        }
+        // --- Logika yang Dihapus untuk Memperbaiki Masalah ---
+        // const storedUser = localStorage.getItem('chat_user');
+        // if (storedUser) {
+        //     currentUser = JSON.parse(storedUser);
+        //     showRoomSelectionScreen();
+        // }
+        //---------------------------------------------------------
 
         profilePicOptions.addEventListener('click', (event) => {
             const clickedImage = event.target.closest('.profile-pic-option');
@@ -264,22 +266,19 @@
             currentUser.name = name;
             currentUser.profilePicUrl = selectedProfilePicUrl;
 
+            // Simpan data pengguna ke Local Storage setelah berhasil login
             localStorage.setItem('chat_user', JSON.stringify(currentUser));
             showRoomSelectionScreen();
         });
 
         logoutBtn.addEventListener('click', () => {
-            if (messagesContainer.style.display === 'block') {
-                showRoomSelectionScreen();
-                if (messagesRef) {
-                    messagesRef.off();
-                }
-            } else {
-                localStorage.removeItem('chat_user');
-                currentUser = { name: null, profilePicUrl: null };
-                currentRoomId = null;
-                showLoginScreen();
+            localStorage.removeItem('chat_user');
+            currentUser = { name: null, profilePicUrl: null };
+            currentRoomId = null;
+            if (messagesRef) {
+                messagesRef.off();
             }
+            showLoginScreen();
         });
 
         function showLoginScreen() {
@@ -449,4 +448,5 @@
         }
     </script>
 </body>
-</html>
+    </html>
+            
