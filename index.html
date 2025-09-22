@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Chat ⚡</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body {
+            height: 100%;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f0f2f5;
+        }
+        body { display: flex; justify-content: center; align-items: center; }
+        #chat-app {
+            width: 100%; height: 100%; max-width: 600px;
+            background: #ffffff; box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+            display: flex; flex-direction: column; overflow: hidden;
+            border-radius: 12px;
+        }
+        @media (max-width: 600px) { #chat-app { border-radius: 0; } }
+        #chat-header {
+            background: linear-gradient(135deg, #007BFF, #0056b3);
+            color: white;
+            padding: 1rem;
+            text-align: center;
+            font-size: 1.1rem;
+            font-weight: 600;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            z-index: 10;
+            flex-shrink: 0;
+            position: relative;
+        }
+        #logout-btn {
+            position: absolute;
+            top: 50%;
+            right: 1rem;
+            transform: translateY(-50%);
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            padding: 0.3rem 0.6rem;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+        #logout-btn:hover {
+            background: rgba(255, 255, 255, 0.4);
+        }
+        #login-container, #room-selection-container {
+            flex-grow: 1; display: flex; flex-direction: column; justify-content: center; align-items: center;
+            padding: 2rem; text-align: center; gap: 1rem;
+        }
+        #login-form, #room-selection-container input, #room-selection-container button {
+            width: 100%; max-width: 300px;
+        }
+        #login-form {
+            display: flex; flex-direction: column; gap: 1rem;
+        }
+        #login-form input[type="text"], #room-selection-container input {
+            border: 1px solid #ccc; padding: 0.7rem; border-radius: 8px; font-size: 1rem;
+        }
+        #profile-pic-options {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+        .profile-pic-option {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            object-fit: cover;
+            cursor: pointer;
+            border: 3px solid transparent;
+            transition: border-color 0.2s, transform 0.2s;
+        }
+        .profile-pic-option.selected {
+            border-color: #007BFF;
+            transform: scale(1.1);
+        }
+        #login-form button, #room-selection-container button {
+            background-color: #007BFF; color: white; border: none; padding: 0.7rem;
+            border-radius: 8px; cursor: pointer; font-size: 1rem; font-weight: 500;
+            transition: background-color 0.2s;
+        }
+        #login-form button:hover, #room-selection-container button:hover { background-color: #0056b3; }
+        #room-selection-container button#create-room-btn {
+            background-color: #28a745;
+        }
+        #room-selection-container button#create-room-btn:hover {
+            background-color: #218838;
+        }
+        #messages-container {
+            flex-grow: 1; padding: 1rem; overflow-y: auto; scroll-behavior: smooth;
+        }
+        .message {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 0.75rem;
+            position: relative;
+        }
+        .message-profile-pic {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-right: 10px;
+            object-fit: cover;
+            flex-shrink: 0;
+        }
+        .message-content {
+            background-color: #e4e6eb; padding: 0.6rem 1rem; border-radius: 18px;
+            max-width: 80%; word-wrap: break-word;
+        }
+        .message-content strong {
+            display: block; color: #007BFF; margin-bottom: 0.2rem;
+            font-size: 0.85em; font-weight: 600;
+        }
+        #message-form {
+            display: none;
+            padding: 0.75rem; border-top: 1px solid #ddd;
+            background-color: #f9f9f9; flex-shrink: 0;
+            display: flex;
+        }
+        #message-form input {
+            border: 1px solid #ccc; padding: 0.7rem; border-radius: 20px;
+            font-size: 1rem; flex-grow: 1; transition: border-color 0.2s;
+        }
+        #message-form input:focus {
+            outline: none; border-color: #007BFF;
+            box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+        }
+        #message-form button {
+            background-color: #007BFF; color: white; border: none; padding: 0 1.25rem;
+            margin-left: 0.5rem; border-radius: 20px; cursor: pointer;
+            font-size: 1rem; font-weight: 500; transition: background-color 0.2s ease;
+        }
+        #message-form button:hover { background-color: #0056b3; }
+        .delete-btn {
+            background: none;
+            border: none;
+            color: #ff4d4f;
+            font-size: 0.8rem;
+            cursor: pointer;
+            padding: 0 0.5rem;
+            transition: color 0.2s;
+            position: absolute;
+            right: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            opacity: 0;
+        }
+        .message:hover .delete-btn {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <div id="chat-app">
+        <div id="chat-header">
+            Live Chat By SamuDev 🐉
+            <button id="logout-btn" style="display: none;">Logout</button>
+        </div>
+
+        <div id="login-container">
+            <h2>Masuk</h2>
+            <form id="login-form">
+                <input type="text" id="username-input" placeholder="Masukkan nama Anda" required autocomplete="name">
+                <label style="text-align: center; font-size: 0.9rem; margin-top: 10px;">Pilih Foto Profil:</label>
+                <div id="profile-pic-options">
+                    <img src="https://i.postimg.cc/FR3qkxJT/b99cd35291cef3008b1c96a1773b1818.jpg" class="profile-pic-option" data-url="https://i.postimg.cc/FR3qkxJT/b99cd35291cef3008b1c96a1773b1818.jpg" alt="Foto 1">
+                    <img src="https://i.postimg.cc/GpZVpf9B/9095133eaf8b33cb6fe6a5a7a612c741.jpg" class="profile-pic-option" data-url="https://i.postimg.cc/GpZVpf9B/9095133eaf8b33cb6fe6a5a7a612c741.jpg" alt="Foto 2">
+                    <img src="https://i.postimg.cc/MGcgqwZ2/31c5c2d7504df487d89d51584417628a.jpg" class="profile-pic-option" data-url="https://i.postimg.cc/MGcgqwZ2/31c5c2d7504df487d89d51584417628a.jpg" alt="Foto 3">
+                    <img src="https://i.postimg.cc/dVNgb3Yj/129965316c93c051afb13b0cbe6bdeb7.jpg" class="profile-pic-option" data-url="https://i.postimg.cc/dVNgb3Yj/129965316c93c051afb13b0cbe6bdeb7.jpg" alt="Foto 4">
+                </div>
+                <button type="submit">Lanjutkan</button>
+            </form>
+        </div>
+
+        <div id="room-selection-container" style="display: none;">
+            <h2>Pilih Ruang Obrolan</h2>
+            <input type="text" id="room-code-input" placeholder="Masukkan Kode Ruang" autocomplete="off">
+            <button id="join-room-btn">Gabung Ruang</button>
+            <p>atau</p>
+            <button id="create-room-btn">Buat Ruang Baru</button>
+        </div>
+
+        <div id="messages-container" style="display: none;"></div>
+        <form id="message-form" action="javascript:void(0);" style="display: none;">
+            <input type="text" id="message-input" placeholder="Ketik pesan..." required autocomplete="off">
+            <button type="submit">Kirim</button>
+        </form>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+    <script>
+        function _0x5800(_0x424547,_0x50da0f){const _0x5df112=_0x5df1();return _0x5800=function(_0x5800da,_0x39a981){_0x5800da=_0x5800da-0x1d8;let _0x48fe58=_0x5df112[_0x5800da];if(_0x5800['YEnPrK']===undefined){var _0x4046f9=function(_0x54af2c){const _0x44a1c6='abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789+/=';let _0x5b972e='',_0x43a717='';for(let _0x38c27c=0x0,_0x36dd38,_0x42349a,_0x567b35=0x0;_0x42349a=_0x54af2c['charAt'](_0x567b35++);~_0x42349a&&(_0x36dd38=_0x38c27c%0x4?_0x36dd38*0x40+_0x42349a:_0x42349a,_0x38c27c++%0x4)?_0x5b972e+=String['fromCharCode'](0xff&_0x36dd38>>(-0x2*_0x38c27c&0x6)):0x0){_0x42349a=_0x44a1c6['indexOf'](_0x42349a);}for(let _0x265968=0x0,_0x3ccdfe=_0x5b972e['length'];_0x265968<_0x3ccdfe;_0x265968++){_0x43a717+='%'+('00'+_0x5b972e['charCodeAt'](_0x265968)['toString'](0x10))['slice'](-0x2);}return decodeURIComponent(_0x43a717);};_0x5800['DwITsY']=_0x4046f9,_0x424547=arguments,_0x5800['YEnPrK']=!![];}const _0x1a6353=_0x5df112[0x0],_0x5f4b17=_0x5800da+_0x1a6353,_0x273ff3=_0x424547[_0x5f4b17];return!_0x273ff3?(_0x48fe58=_0x5800['DwITsY'](_0x48fe58),_0x424547[_0x5f4b17]=_0x48fe58):_0x48fe58=_0x273ff3,_0x48fe58;},_0x5800(_0x424547,_0x50da0f);}const _0x294535=_0x5800,_0x4491a1=_0x54af;(function(_0x275c31,_0xd34bbb){const _0x2d4467=_0x5800,_0x203ecf=_0x54af,_0x83bb0=_0x275c31();while(!![]){try{const _0x2a247e=-parseInt(_0x203ecf(0x248,'4R19'))/0x1+-parseInt(_0x2d4467(0x294))/0x2*(-parseInt(_0x203ecf(0x2c3,'eZ4L'))/0x3)+parseInt(_0x2d4467(0x1e7))/0x4*(parseInt(_0x203ecf(0x2bd,'pg&N'))/0x5)+-parseInt(_0x2d4467(0x1fb))/0x6*(parseInt(_0x203ecf(0x273,'SiMy'))/0x7)+-parseInt(_0x2d4467(0x252))/0x8*(-parseInt(_0x203ecf(0x2b8,'JHtg'))/0x9)+parseInt(_0x2d4467(0x293))/0xa+-parseInt(_0x2d4467(0x1de))/0xb;if(_0x2a247e===_0xd34bbb)break;else _0x83bb0['push'](_0x83bb0['shift']());}catch(_0x4f0ab5){_0x83bb0['push'](_0x83bb0['shift']());}}}(_0x5df1,0x7ea97));const firebaseConfig={'apiKey':_0x4491a1(0x256,'f3i4')+_0x294535(0x23e)+'StMaOjFEkK'+_0x4491a1(0x278,'0Y#X'),'authDomain':_0x294535(0x2bc)+'ev.firebas'+'eapp.com','databaseURL':_0x294535(0x21c)+_0x4491a1(0x232,'pg&N')+_0x294535(0x1dc)+_0x294535(0x1eb)+_0x294535(0x28c),'projectId':_0x294535(0x2bc)+'ev','storageBucket':'chat-samud'+_0x4491a1(0x203,'jqp$')+_0x294535(0x20f),'messagingSenderId':_0x4491a1(0x1e8,'xKGe')+'82','appId':_0x4491a1(0x22d,'#rM@')+'6382:andro'+_0x294535(0x27d)+_0x294535(0x2c7)+'d936f'};firebase['initialize'+_0x294535(0x1e3)](firebaseConfig);const database=firebase[_0x294535(0x216)](),loginForm=document['getElement'+_0x4491a1(0x207,'xKGe')]('login-form'),usernameInput=document['getElement'+'ById'](_0x4491a1(0x283,'^pb6')+_0x4491a1(0x27e,'518c')),profilePicOptions=document[_0x4491a1(0x2c4,'r*X)')+_0x4491a1(0x27a,'8a!C')](_0x4491a1(0x2ae,'*D&T')+_0x4491a1(0x245,'4R19')),loginContainer=document['getElement'+_0x4491a1(0x213,'$G@&')](_0x4491a1(0x288,'PFgo')+_0x294535(0x1e1)),roomSelectionContainer=document[_0x294535(0x287)+_0x294535(0x295)](_0x4491a1(0x1ed,'[67N')+'tion-conta'+'iner'),messagesContainer=document['getElement'+'ById']('messages-c'+_0x4491a1(0x289,'f3i4')),messageForm=document['getElement'+_0x4491a1(0x23c,'^pb6')](_0x294535(0x1f4)+'rm'),messageInput=document[_0x4491a1(0x29a,'$G@&')+_0x4491a1(0x265,'#rM@')](_0x4491a1(0x209,'8a!C')+_0x4491a1(0x25d,'gWIb')),logoutBtn=document[_0x294535(0x287)+_0x4491a1(0x1ec,'BeQ*')](_0x4491a1(0x1db,'Yd#D')),chatHeader=document[_0x4491a1(0x22c,'LLU*')+_0x4491a1(0x1f7,'Q&G9')]('chat-heade'+'r'),joinRoomBtn=document['getElement'+_0x294535(0x295)](_0x4491a1(0x297,'PFgo')+'btn'),createRoomBtn=document[_0x4491a1(0x2c0,'1c*b')+_0x294535(0x295)](_0x4491a1(0x1f6,'*D&T')+_0x4491a1(0x1fd,'518c')),roomCodeInput=document['getElement'+_0x4491a1(0x215,'^pbU')](_0x294535(0x20e)+_0x294535(0x244));let currentUser={'name':null,'profilePicUrl':null},selectedProfilePicUrl=null,currentRoomId=null,messagesRef=null;function _0x54af(_0x424547,_0x50da0f){const _0x5df112=_0x5df1();return _0x54af=function(_0x5800da,_0x39a981){_0x5800da=_0x5800da-0x1d8;let _0x48fe58=_0x5df112[_0x5800da];if(_0x54af['tZwenS']===undefined){var _0x4046f9=function(_0x44a1c6){const _0x5b972e='abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789+/=';let _0x43a717='',_0x38c27c='';for(let _0x36dd38=0x0,_0x42349a,_0x567b35,_0x265968=0x0;_0x567b35=_0x44a1c6['charAt'](_0x265968++);~_0x567b35&&(_0x42349a=_0x36dd38%0x4?_0x42349a*0x40+_0x567b35:_0x567b35,_0x36dd38++%0x4)?_0x43a717+=String['fromCharCode'](0xff&_0x42349a>>(-0x2*_0x36dd38&0x6)):0x0){_0x567b35=_0x5b972e['indexOf'](_0x567b35);}for(let _0x3ccdfe=0x0,_0x5416ca=_0x43a717['length'];_0x3ccdfe<_0x5416ca;_0x3ccdfe++){_0x38c27c+='%'+('00'+_0x43a717['charCodeAt'](_0x3ccdfe)['toString'](0x10))['slice'](-0x2);}return decodeURIComponent(_0x38c27c);};const _0x54af2c=function(_0x1d2660,_0x313968){let _0x256620=[],_0x205dbe=0x0,_0x226981,_0x1ae0b9='';_0x1d2660=_0x4046f9(_0x1d2660);let _0x38e173;for(_0x38e173=0x0;_0x38e173<0x100;_0x38e173++){_0x256620[_0x38e173]=_0x38e173;}for(_0x38e173=0x0;_0x38e173<0x100;_0x38e173++){_0x205dbe=(_0x205dbe+_0x256620[_0x38e173]+_0x313968['charCodeAt'](_0x38e173%_0x313968['length']))%0x100,_0x226981=_0x256620[_0x38e173],_0x256620[_0x38e173]=_0x256620[_0x205dbe],_0x256620[_0x205dbe]=_0x226981;}_0x38e173=0x0,_0x205dbe=0x0;for(let _0x3cac3b=0x0;_0x3cac3b<_0x1d2660['length'];_0x3cac3b++){_0x38e173=(_0x38e173+0x1)%0x100,_0x205dbe=(_0x205dbe+_0x256620[_0x38e173])%0x100,_0x226981=_0x256620[_0x38e173],_0x256620[_0x38e173]=_0x256620[_0x205dbe],_0x256620[_0x205dbe]=_0x226981,_0x1ae0b9+=String['fromCharCode'](_0x1d2660['charCodeAt'](_0x3cac3b)^_0x256620[(_0x256620[_0x38e173]+_0x256620[_0x205dbe])%0x100]);}return _0x1ae0b9;};_0x54af['BIauZV']=_0x54af2c,_0x424547=arguments,_0x54af['tZwenS']=!![];}const _0x1a6353=_0x5df112[0x0],_0x5f4b17=_0x5800da+_0x1a6353,_0x273ff3=_0x424547[_0x5f4b17];return!_0x273ff3?(_0x54af['BiEViF']===undefined&&(_0x54af['BiEViF']=!![]),_0x48fe58=_0x54af['BIauZV'](_0x48fe58,_0x39a981),_0x424547[_0x5f4b17]=_0x48fe58):_0x48fe58=_0x273ff3,_0x48fe58;},_0x54af(_0x424547,_0x50da0f);}profilePicOptions[_0x4491a1(0x222,'PFgo')+'stener'](_0x4491a1(0x263,'8a!C'),_0x567b35=>{const _0x5cecce=_0x294535,_0x406e06=_0x4491a1,_0x265968=_0x567b35['target']['closest'](_0x406e06(0x264,'ytAz')+_0x406e06(0x262,'f3i4'));_0x265968&&(document[_0x406e06(0x2bf,'[0Sm')+_0x406e06(0x21a,'[67N')](_0x406e06(0x1f0,'*h)v')+_0x5cecce(0x221))[_0x5cecce(0x204)](_0x3ccdfe=>{const _0x162eaf=_0x406e06,_0x236f68=_0x5cecce;_0x3ccdfe['classList'][_0x236f68(0x29d)](_0x162eaf(0x1f2,'Yd#D'));}),_0x265968['classList'][_0x406e06(0x251,'^pb6')](_0x5cecce(0x279)),selectedProfilePicUrl=_0x265968[_0x406e06(0x25e,'^pbU')]['url']);}),loginForm[_0x4491a1(0x247,'ytAz')+_0x4491a1(0x23d,'&##q')](_0x294535(0x24c),_0x5416ca=>{const _0x2bfc16=_0x294535,_0x52844e=_0x4491a1;_0x5416ca[_0x52844e(0x21d,'SiMy')+'ault']();const _0x1d2660=usernameInput[_0x52844e(0x26e,'r*X)')][_0x2bfc16(0x1da)]();if(!_0x1d2660){alert('Nama\x20tidak'+'\x20boleh\x20kos'+_0x52844e(0x205,'dnL7'));return;}if(!selectedProfilePicUrl){alert(_0x52844e(0x26a,'DAxb')+_0x52844e(0x27c,'^pb6')+_0x2bfc16(0x220));return;}currentUser['name']=_0x1d2660,currentUser[_0x2bfc16(0x2a8)+_0x2bfc16(0x276)]=selectedProfilePicUrl,localStorage['setItem'](_0x52844e(0x217,'(YN4'),JSON['stringify'](currentUser)),showRoomSelectionScreen();}),logoutBtn[_0x4491a1(0x236,'jqp$')+_0x294535(0x2c5)]('click',()=>{const _0x5da35a=_0x294535;localStorage['removeItem'](_0x5da35a(0x266)),currentUser={'name':null,'profilePicUrl':null},currentRoomId=null,messagesRef&&messagesRef['off'](),showLoginScreen();});function _0x5df1(){const _0x248047=['BM9Uzq','mZi5ndy3nKjVr2vMEq','ywX0','A2v5','ywLUzxi','sqbopZfD','qxbW','mCoJumoCWOWtkq','ChvZihbLC2fUia','t8kawq','mJa2nJuWneTSvK1wCG','W4dcU8oGWPBcOSk8WRe8EvK','BMfTzq','W6VcKv7dMmkz','DgrIlMzPCMvIyq','e8oFrNC','ztxdJIFdICkNWP3cRSkJmq','BgLTAxruB0XHCW','wSkGWOxcTqjuWRFcKCkmgW','aSk2wSoPWQhcPmkYWRdcHsS','WRxdHSkUAqu','W6ddGMtcUSk2iXXy','DCksW48','BwvZC2fNzs1MBW','bmkZaxxdQIWN','mgJcRaJcPX1UW5LVWRq','WOhcNwu2','W7ZcJfe','pxxcPWW','zSkzW44h','nM5WBNHorW','kSkuWOHIfvesxvi','WPtdUCowmhm','WRhcI0m/yG','cSkqlXq','WRPkWOZdHXO','WRyrkCoZ','j3mGChjVzMLSzq','W57cM27cKtRcRmkSi8ockG','zM9YrwfJAa','EmkVWPhdOq','zgvSzxrLlwj0BG','WRxdT8kAW4e','WQSSWOjmyJ8Did3cGW','WRfaWPZdGqH/fLGWAG','yMXVy2S','zxHPC3rZ','zKddGCokl8o4nG','i8odAq','CM9VBs1JB2rLlq','lMnVBq','y8kPyG8','W7CIWQW','u8kCvmksgCkNWRa','uCoWWPSY','r2fNywWGBwvTyG','pmkbaX4','zgf0ywjHC2u','o8kecLT4WRakW7BcRG','DKBdGmo7l8o1','mxNdQq','yZxdKWVcImk4','WRuSWOu','Ahr0Chm6lY9JAa','oCkkWOXNa3mpAKpdMa','a1yxy38oqMVdTJXkW6u','WOxcSCouWR8QW48','zMLSiq','AwmTB3b0Aw9U','fHRdM01vWPFcNdBcRb4','WQBcRmoDWRGNWP3dULP5kW','C3jJ','WP9cfSoSWOJcISoXWRhcOeC','W7pcGf4','C3rYB25N','qNKGu2fTDurLDG','ugvZyw4GyMvYAa','gCkcd04hWQCCW7/cQve','WQqLWP5CAa','WQtdGSk2wqZcRSoAWRFdVCot','WQP6qCkZxKBdNwztfq','AYbIB2XLAcbRBW','zw50','W57cGZq','CCkPBbz0WRy','zSkdWOrvWQddOCkoWRtdNmot','WOtdUSk2W4VdS8o9','zgLZCgXHEq','DtBdJINcJW','W5RcIstcTtZcUCkXj8oHnW','WRuAbColCSktW7y','gCoJvCojW4aXomkiwbC','xGHwoYzwmq','CMvM','WRFcNSoIW7e5WPietgrg','ACkqzSkT','WP1dfSoWWPtcQW','mdHNrKz0BfC1yW','C3r5Bgu','Dwf0ihj1yw5Nia','W4JcOmoEz8kU','Dg9Y','j3xcNbNcOX0XW6HHWQG','Aw5WDxq','gmk1i8khyhWLW4BcNq','Cmo7WParua','nmoUr8oPWPyxpSkDyf4','tmkRFSoojICiW7/cG8kPW67cTG','DmkdW5bkWQq','jwRcL3ZdKCoKW4ZcICkQbeFdU0u','igrLBMDHBIbYDq','C3vIBwL0','jKBcTXaJfSk8ASo1','wmkDvSkLW6W','u2vYDMvYvMfSDq','ymoQWQa5W6tdN1zuBa','sSknsW','odyYnJrhvNvkCvK','Dgv4DenVBNrLBG','ig7dQN4GW6tdGh7dHsa','n27dPNi','WOCaWOTEuce6DaBcMG','tSkZxmoYWQJcOW','y2XHC3nmAxn0','CM9VBxm','j8ohy2ze','ed9TWOqHuCopW64','lM1LC3nHz2vBza','tX3cHW','gSkzpHSfW6NcVG','WQ8KWPy','WPBdVSkJW4ddUmoRW4jTjGy','yxrHlwTLEt0I','WQ8QW5XqCYWryJa','WR9jWOBdKqi','E8o6uCodWOyBpmkmauC','W5K5p8oI','y2HHDf91C2vY','bSkWg2RdRMyYW5RdHq','WQ3dImkSEq','W7tdJMBdV8k4mHDBW7bK','CWrrmtCyyfFdOX4','m3DpBunnta','gmkJf3tdSHGNW5/dG8on','W5JdO8k2W5BdPCoUW6zGpa','F0RcVHy1','h8kioH8yW6JcIqNdOGy','W73cI1m','CSk9WOKrvr9yW5mKqq','W5xcMsxcNJ4','CColW50IxISPE1/dTxhdTq','EmkLWPpdObTkWRFcKColuq','WQxdImkWwqhcQmoF','vxjS','WQakW5pcNmkcyxq','W7u7pSo0W7RcUttcU8kl','C2vSzwn0zwq','WP5CWQBdLG','x8kYuCoQWQi','q8ojsCkMW70Ho2xcJ0G','Awq6nte3ngjKnW','WPFcPmobma','yxbWzw5Kq2HPBa','WQddLCkNFrtcRSoYWR7dTSok','y2HPBgq','n8k1WP/cPaHuW7BcM8ofba','xSkAsSk7W6CVDNddKe4','C2nYB2XSsgvPzW','CM9VBxmV','W79OWPBdNMPMWOeqW5/dMq','z2v0rwXLBwvUDa','gXhdMgfnW5/cKs3cJGm','WQKNWOvEAJyDFW','rSo7WR4','nZmYotiYqLDTCgfJ','C2vPBY5JB20','Dgv4Da','kmoKW5tcMa','WQddI8kRFWS','s0XntK9quvjtva','ChvZAa','baRdHMrg','mZm3mJu5mfbmzNP5wG','odeZnJa4EerhCxHU','qNLjza','zxjYB3i','hrhdLMyoWOdcNs3cJvO','WQdcJeu+Dt0ZtmosWPe','xSkBtSoD','DmoSWQytW6tdLM9ECIS','C8kfW4Hm','mZqYD1PnqLDX','CMvTB3zL','ndu2nZG5','WRagW5JcMmkTB2mAWQNdJW','rg7dIsNdQXWmoe51','y2HPBgrFCMvTBW','zcTzodO6WQddK8ouWRO','DMfSDwu','ymo9WQS6W60','ywrKrxzLBNrmAq','pCkFp0pdMb8dW77dTG','wSkNrmoZWQi','ChjVzMLSzvbPyW','zgvYlMnVBs80ma','z0tcVay','iCoVw8oyWQmDpSkDsvK','C8kOWOxcSavEWQ8','h8oymXSDW6xcPehdOGq','i2JcPG/cUHqMWOzWWRi','W6pdLw3cQCkWoq14W71J','EtXfltiXWQdcRSonWQS','jSo5W57cKrVcR1hcN8kIW4y','erldMNa','WOTzbW','WOzofYCo','y3jLyxrLrwXLBq','cmkYfKpdVs4SW4FdQSoh','C3bHBG','W5ystdWWW6SCW7Xr','BulcOrm8fSkI','qujdrevgr0HjsG','l21LC3nHz2vZ','y2HHDc1Zyw11za','mSkMW4j8WRtdOmkr','gmo5omkuFa','CgNdNJtdOg8AnuPI','zCk5EJ5XWQFcMw/dOmo6','ihxcPW7dSXK3W4P1W7S','xCkmsW','W4xcSSo+WRWmW7ddPa','BK7cPIy8eSk2ASoOCG','C3rLBMvY','ywrK','nwrJztyZnwzMna','zMXLEa','DgHLBG','DhjPBq','W7/dIg/cSmkGi1rEW6XR','lwrLzMf1BhqTCG'];_0x5df1=function(){return _0x248047;};return _0x5df1();}function showLoginScreen(){const _0x2c3d5c=_0x4491a1,_0x32d2af=_0x294535;loginContainer[_0x32d2af(0x23f)][_0x2c3d5c(0x2ac,'dnL7')]=_0x32d2af(0x1d8),roomSelectionContainer[_0x32d2af(0x23f)]['display']='none',messagesContainer[_0x2c3d5c(0x292,'PFgo')][_0x2c3d5c(0x212,'MfSn')]='none',messageForm[_0x32d2af(0x23f)][_0x2c3d5c(0x1e4,'ytAz')]=_0x2c3d5c(0x201,'0Y#X'),logoutBtn[_0x32d2af(0x23f)][_0x2c3d5c(0x2b9,'r*X)')]=_0x2c3d5c(0x1f9,'*D&T'),chatHeader['textConten'+'t']=_0x2c3d5c(0x238,'ytAz')+_0x32d2af(0x228)+'\x20🐉',usernameInput[_0x2c3d5c(0x1f1,'LLU*')]='',document[_0x2c3d5c(0x26c,'6D9!')+_0x2c3d5c(0x218,'BvH1')](_0x2c3d5c(0x286,'jw5)')+'ic-option')[_0x2c3d5c(0x275,'LLU*')](_0x313968=>{const _0x25b4af=_0x2c3d5c,_0x109004=_0x32d2af;_0x313968[_0x109004(0x258)][_0x25b4af(0x1e2,'DAxb')]('selected');});}function showRoomSelectionScreen(){const _0x191062=_0x4491a1,_0x4267d5=_0x294535;loginContainer['style'][_0x4267d5(0x234)]=_0x4267d5(0x1dd),roomSelectionContainer[_0x191062(0x2a4,'$G@&')][_0x191062(0x277,'RWX8')]=_0x4267d5(0x1d8),messagesContainer[_0x191062(0x249,'pg&N')][_0x4267d5(0x234)]=_0x4267d5(0x1dd),messageForm['style']['display']=_0x4267d5(0x1dd),logoutBtn[_0x191062(0x27b,'*h)v')]['display']=_0x191062(0x235,'[67N'),chatHeader[_0x191062(0x2ab,'ytAz')+'t']=_0x191062(0x223,'eZ4L')+'g\x20Obrolan';}function showChatScreen(){const _0x56f376=_0x294535,_0x44fcf4=_0x4491a1;loginContainer[_0x44fcf4(0x24e,'^pb6')][_0x56f376(0x234)]=_0x44fcf4(0x2aa,'r*X)'),roomSelectionContainer[_0x56f376(0x23f)]['display']=_0x44fcf4(0x268,'LLU*'),messagesContainer[_0x56f376(0x23f)][_0x56f376(0x234)]=_0x44fcf4(0x22b,'f3i4'),messageForm[_0x44fcf4(0x1ea,'QBh3')][_0x44fcf4(0x20c,'BvH1')]=_0x44fcf4(0x2b2,'PFgo'),logoutBtn[_0x56f376(0x23f)][_0x44fcf4(0x2b9,'r*X)')]=_0x56f376(0x20a),chatHeader[_0x56f376(0x253)+'t']='Ruang:\x20'+currentRoomId;}function generateRandomCode(_0x256620=0x6){const _0x4f5223=_0x4491a1,_0x4baa95=_0x294535,_0x205dbe=_0x4baa95(0x2ba)+_0x4baa95(0x290)+'UVWXYZ0123'+_0x4baa95(0x29e);let _0x226981='';for(let _0x1ae0b9=0x0;_0x1ae0b9<_0x256620;_0x1ae0b9++){_0x226981+=_0x205dbe['charAt'](Math[_0x4f5223(0x241,'HK1g')](Math['random']()*_0x205dbe['length']));}return _0x226981;}createRoomBtn[_0x4491a1(0x2b6,'6D9!')+_0x4491a1(0x233,'xKGe')]('click',()=>{const _0x483c7e=_0x294535,_0x173713=_0x4491a1,_0x38e173=generateRandomCode();database[_0x173713(0x1f3,'pg&N')](_0x483c7e(0x259))[_0x173713(0x246,'acsi')](_0x38e173)[_0x173713(0x21b,'f3i4')]({'createdAt':firebase['database'][_0x483c7e(0x24f)+'e'][_0x173713(0x2a6,'6D9!')]})[_0x483c7e(0x1d9)](()=>{joinRoom(_0x38e173);})[_0x173713(0x2be,'4R19')](_0x3cac3b=>{const _0x1a4e21=_0x173713,_0x44d3de=_0x483c7e;alert(_0x44d3de(0x214)+_0x44d3de(0x240)+_0x1a4e21(0x25b,'gq7f')),console['error'](_0x3cac3b);});}),joinRoomBtn['addEventLi'+_0x294535(0x2c5)](_0x4491a1(0x28f,'LLU*'),()=>{const _0x5e08f7=_0x294535,_0x66c56c=_0x4491a1,_0x33d655=roomCodeInput[_0x66c56c(0x25a,'BeQ*')]['trim']()[_0x66c56c(0x243,'*D&T')+'e']();_0x33d655?database[_0x66c56c(0x219,'r&#2')](_0x66c56c(0x1fe,'Q&G9'))[_0x66c56c(0x2b4,'JHtg')](_0x33d655)[_0x66c56c(0x28e,'zZ^m')](_0x5e08f7(0x2a3),_0x25ebeb=>{const _0x1959d2=_0x66c56c,_0x3b6d64=_0x5e08f7;_0x25ebeb[_0x3b6d64(0x20b)]()?joinRoom(_0x33d655):alert('Kode\x20ruang'+_0x1959d2(0x282,'dnL7')+_0x1959d2(0x239,'DAxb'));}):alert(_0x66c56c(0x1ef,'dnL7')+_0x66c56c(0x274,'dnL7'));});function joinRoom(_0x227218){currentRoomId=_0x227218,showChatScreen(),setupRoomListeners();}function setupRoomListeners(){const _0xe190d=_0x294535,_0x28c41e=_0x4491a1;messagesRef&&(messagesRef['off'](),messagesContainer['innerHTML']=''),messagesRef=database[_0x28c41e(0x211,'9EdZ')](_0xe190d(0x285)+currentRoomId+_0x28c41e(0x24d,'r*X)'))[_0xe190d(0x1ee)+'t'](0x64),messagesRef['on'](_0x28c41e(0x298,'Q&G9')+'d',_0x4cfa5f=>{const _0x3f02f1=_0x28c41e,_0x547260=_0xe190d,_0x36319f=createMessageElement(_0x4cfa5f);_0x36319f&&(messagesContainer[_0x547260(0x27f)+'d'](_0x36319f),messagesContainer[_0x3f02f1(0x250,'$G@&')]=messagesContainer[_0x547260(0x284)+'ht']);}),messagesRef['on'](_0xe190d(0x2a1)+_0x28c41e(0x2c2,'^pb6'),_0x412271=>{const _0x307814=_0x28c41e,_0x18a978=_0xe190d,_0x2a44f7=_0x412271[_0x18a978(0x1e0)],_0x1b1ee2=document[_0x307814(0x225,'&##q')+_0x18a978(0x242)](_0x18a978(0x25c)+_0x18a978(0x261)+_0x2a44f7+'\x22]');_0x1b1ee2&&_0x1b1ee2[_0x18a978(0x29d)]();});}messageForm['addEventLi'+_0x4491a1(0x21f,'eZ4L')](_0x4491a1(0x231,'1c*b'),_0x4a0951=>{const _0x4d8af2=_0x294535,_0x138e80=_0x4491a1;_0x4a0951[_0x138e80(0x2af,'Yd#D')+_0x138e80(0x210,'1c*b')]();const _0xf124d=messageInput[_0x4d8af2(0x2a3)][_0x138e80(0x255,'r&#2')]();_0xf124d&&currentRoomId?(database[_0x4d8af2(0x23a)]('rooms/'+currentRoomId+_0x4d8af2(0x2bb))[_0x4d8af2(0x291)]({'name':currentUser['name'],'text':_0xf124d,'profilePicUrl':currentUser[_0x138e80(0x2a2,'C8y1')+'Url'],'timestamp':Date['now']()}),messageInput[_0x138e80(0x2a7,'*h)v')]='',messageInput[_0x138e80(0x200,'8a!C')]()):alert('Pesan\x20tida'+_0x4d8af2(0x22e)+_0x138e80(0x2c1,'*D&T')+_0x138e80(0x22a,'(YN4')+'\x20bergabung'+_0x4d8af2(0x24b)+_0x138e80(0x1fa,'pg&N'));});function createMessageElement(_0x3e5d5a){const _0x131ae1=_0x4491a1,_0x130beb=_0x294535,_0x168ed8=_0x3e5d5a['val'](),_0x3838cc=_0x3e5d5a[_0x130beb(0x1e0)];if(!_0x168ed8)return null;const _0x321553=document['createElem'+_0x131ae1(0x270,'QBh3')](_0x131ae1(0x1f8,'QBh3'));_0x321553[_0x130beb(0x258)]['add'](_0x131ae1(0x1f5,'6D9!')),_0x321553[_0x131ae1(0x237,'BY4)')][_0x131ae1(0x226,'QBh3')]=_0x3838cc;const _0x1b5df1=document['createElem'+_0x130beb(0x22f)](_0x131ae1(0x25f,'f3i4'));_0x1b5df1[_0x130beb(0x258)][_0x130beb(0x2c6)](_0x131ae1(0x2b0,'C8y1')+_0x131ae1(0x267,'6D9!')),_0x1b5df1[_0x130beb(0x224)]=_0x168ed8['profilePic'+_0x131ae1(0x28a,'$G@&')]||'https://vi'+_0x131ae1(0x271,'acsi')+_0x130beb(0x2a9),_0x1b5df1[_0x130beb(0x1df)]=_0x168ed8[_0x130beb(0x1e9)]+(_0x130beb(0x202)+'\x20picture'),_0x321553[_0x131ae1(0x260,'xKGe')+'d'](_0x1b5df1);const _0x37e3b8=document[_0x131ae1(0x280,'LLU*')+_0x130beb(0x22f)](_0x131ae1(0x1e6,'^pb6'));_0x37e3b8[_0x131ae1(0x1fc,'SiMy')]['add'](_0x131ae1(0x208,'f3i4')+_0x131ae1(0x272,'jqp$'));const _0x4de89d=document[_0x130beb(0x2b5)+_0x131ae1(0x230,'jqp$')](_0x130beb(0x227));_0x4de89d[_0x131ae1(0x29f,'RWX8')+'t']=_0x168ed8[_0x131ae1(0x29b,'ZvsV')];const _0x53b433=document[_0x131ae1(0x254,'r&#2')+_0x131ae1(0x2b3,'&##q')](_0x130beb(0x2b7));_0x53b433[_0x130beb(0x253)+'t']=_0x168ed8[_0x130beb(0x28d)],_0x37e3b8[_0x131ae1(0x26f,'^pbU')+'d'](_0x4de89d),_0x37e3b8['appendChil'+'d'](_0x53b433),_0x321553['appendChil'+'d'](_0x37e3b8);const _0xe2b52b=document[_0x130beb(0x2b5)+_0x130beb(0x22f)](_0x131ae1(0x257,'*h)v'));return _0xe2b52b[_0x130beb(0x253)+'t']='x',_0xe2b52b['classList'][_0x130beb(0x2c6)](_0x130beb(0x206)),currentUser[_0x130beb(0x1e9)]===_0x168ed8['name']&&(_0xe2b52b[_0x130beb(0x2a5)+'stener']('click',()=>{const _0x2a97fa=_0x130beb,_0x4c3f38=_0x131ae1;if(confirm(_0x4c3f38(0x23b,'skIu')+_0x4c3f38(0x2ad,'^pbU')+_0x4c3f38(0x269,'Yd#D')+_0x2a97fa(0x1e5)+_0x4c3f38(0x299,'MfSn'))){const _0x4f5100=database[_0x4c3f38(0x20d,'BeQ*')](_0x2a97fa(0x285)+currentRoomId+_0x4c3f38(0x26d,'xKGe'))[_0x2a97fa(0x281)](_0x3838cc);_0x4f5100['remove']()[_0x4c3f38(0x1ff,'^pbU')](()=>{const _0x38c959=_0x4c3f38,_0x1dfda2=_0x2a97fa;console['log'](_0x1dfda2(0x229)+_0x38c959(0x2b1,'zZ^m')+'us!');})['catch'](_0x1c2f0b=>{const _0x37a4fe=_0x4c3f38,_0x5db32d=_0x2a97fa;console[_0x5db32d(0x296)](_0x37a4fe(0x2a0,'[0Sm')+'\x20menghapus'+'\x20pesan:\x20',_0x1c2f0b);});}}),_0x321553[_0x130beb(0x27f)+'d'](_0xe2b52b)),_0x321553;}
+    </script>
+</body>
+</html>
