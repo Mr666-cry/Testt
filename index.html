@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Chat ⚡</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body {
+            height: 100%;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f0f2f5;
+        }
+        body { display: flex; justify-content: center; align-items: center; }
+        #chat-app {
+            width: 100%; height: 100%; max-width: 600px;
+            background: #ffffff; box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+            display: flex; flex-direction: column; overflow: hidden;
+            border-radius: 12px;
+        }
+        @media (max-width: 600px) { #chat-app { border-radius: 0; } }
+        #chat-header {
+            background: linear-gradient(135deg, #007BFF, #0056b3);
+            color: white;
+            padding: 1rem;
+            text-align: center;
+            font-size: 1.1rem;
+            font-weight: 600;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            z-index: 10;
+            flex-shrink: 0;
+            position: relative;
+        }
+        #logout-btn {
+            position: absolute;
+            top: 50%;
+            right: 1rem;
+            transform: translateY(-50%);
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            padding: 0.3rem 0.6rem;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+        #logout-btn:hover {
+            background: rgba(255, 255, 255, 0.4);
+        }
+        #login-container, #room-selection-container {
+            flex-grow: 1; display: flex; flex-direction: column; justify-content: center; align-items: center;
+            padding: 2rem; text-align: center; gap: 1rem;
+        }
+        #login-form, #room-selection-container input, #room-selection-container button {
+            width: 100%; max-width: 300px;
+        }
+        #login-form {
+            display: flex; flex-direction: column; gap: 1rem;
+        }
+        #login-form input[type="text"], #room-selection-container input {
+            border: 1px solid #ccc; padding: 0.7rem; border-radius: 8px; font-size: 1rem;
+        }
+        #profile-pic-options {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+        .profile-pic-option {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            object-fit: cover;
+            cursor: pointer;
+            border: 3px solid transparent;
+            transition: border-color 0.2s, transform 0.2s;
+        }
+        .profile-pic-option.selected {
+            border-color: #007BFF;
+            transform: scale(1.1);
+        }
+        #login-form button, #room-selection-container button {
+            background-color: #007BFF; color: white; border: none; padding: 0.7rem;
+            border-radius: 8px; cursor: pointer; font-size: 1rem; font-weight: 500;
+            transition: background-color 0.2s;
+        }
+        #login-form button:hover, #room-selection-container button:hover { background-color: #0056b3; }
+        #room-selection-container button#create-room-btn {
+            background-color: #28a745;
+        }
+        #room-selection-container button#create-room-btn:hover {
+            background-color: #218838;
+        }
+        #messages-container {
+            flex-grow: 1; padding: 1rem; overflow-y: auto; scroll-behavior: smooth;
+        }
+        .message {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 0.75rem;
+            position: relative;
+        }
+        .message-profile-pic {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-right: 10px;
+            object-fit: cover;
+            flex-shrink: 0;
+        }
+        .message-content {
+            background-color: #e4e6eb; padding: 0.6rem 1rem; border-radius: 18px;
+            max-width: 80%; word-wrap: break-word;
+        }
+        .message-content strong {
+            display: block; color: #007BFF; margin-bottom: 0.2rem;
+            font-size: 0.85em; font-weight: 600;
+        }
+        #message-form {
+            display: none;
+            padding: 0.75rem; border-top: 1px solid #ddd;
+            background-color: #f9f9f9; flex-shrink: 0;
+            display: flex;
+        }
+        #message-form input {
+            border: 1px solid #ccc; padding: 0.7rem; border-radius: 20px;
+            font-size: 1rem; flex-grow: 1; transition: border-color 0.2s;
+        }
+        #message-form input:focus {
+            outline: none; border-color: #007BFF;
+            box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+        }
+        #message-form button {
+            background-color: #007BFF; color: white; border: none; padding: 0 1.25rem;
+            margin-left: 0.5rem; border-radius: 20px; cursor: pointer;
+            font-size: 1rem; font-weight: 500; transition: background-color 0.2s ease;
+        }
+        #message-form button:hover { background-color: #0056b3; }
+        .delete-btn {
+            background: none;
+            border: none;
+            color: #ff4d4f;
+            font-size: 0.8rem;
+            cursor: pointer;
+            padding: 0 0.5rem;
+            transition: color 0.2s;
+            position: absolute;
+            right: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            opacity: 0;
+        }
+        .message:hover .delete-btn {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <div id="chat-app">
+        <div id="chat-header">
+            Live Chat By SamuDev 🐉
+            <button id="logout-btn" style="display: none;">Logout</button>
+        </div>
+
+        <div id="login-container">
+            <h2>Masuk</h2>
+            <form id="login-form">
+                <input type="text" id="username-input" placeholder="Masukkan nama Anda" required autocomplete="name">
+                <label style="text-align: center; font-size: 0.9rem; margin-top: 10px;">Pilih Foto Profil:</label>
+                <div id="profile-pic-options">
+                    <img src="https://i.postimg.cc/FR3qkxJT/b99cd35291cef3008b1c96a1773b1818.jpg" class="profile-pic-option" data-url="https://i.postimg.cc/FR3qkxJT/b99cd35291cef3008b1c96a1773b1818.jpg" alt="Foto 1">
+                    <img src="https://i.postimg.cc/GpZVpf9B/9095133eaf8b33cb6fe6a5a7a612c741.jpg" class="profile-pic-option" data-url="https://i.postimg.cc/GpZVpf9B/9095133eaf8b33cb6fe6a5a7a612c741.jpg" alt="Foto 2">
+                    <img src="https://i.postimg.cc/MGcgqwZ2/31c5c2d7504df487d89d51584417628a.jpg" class="profile-pic-option" data-url="https://i.postimg.cc/MGcgqwZ2/31c5c2d7504df487d89d51584417628a.jpg" alt="Foto 3">
+                    <img src="https://i.postimg.cc/dVNgb3Yj/129965316c93c051afb13b0cbe6bdeb7.jpg" class="profile-pic-option" data-url="https://i.postimg.cc/dVNgb3Yj/129965316c93c051afb13b0cbe6bdeb7.jpg" alt="Foto 4">
+                </div>
+                <button type="submit">Lanjutkan</button>
+            </form>
+        </div>
+
+        <div id="room-selection-container" style="display: none;">
+            <h2>Pilih Ruang Obrolan</h2>
+            <input type="text" id="room-code-input" placeholder="Masukkan Kode Ruang" autocomplete="off">
+            <button id="join-room-btn">Gabung Ruang</button>
+            <p>atau</p>
+            <button id="create-room-btn">Buat Ruang Baru</button>
+        </div>
+
+        <div id="messages-container" style="display: none;"></div>
+        <form id="message-form" action="javascript:void(0);" style="display: none;">
+            <input type="text" id="message-input" placeholder="Ketik pesan..." required autocomplete="off">
+            <button type="submit">Kirim</button>
+        </form>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyByXv08gFFtlW5cStMaOjFEkK-EybTFzA8",
+            authDomain: "chat-samudev.firebaseapp.com",
+            databaseURL: "https://chat-samudev-default-rtdb.firebaseio.com",
+            projectId: "chat-samudev",
+            storageBucket: "chat-samudev.appspot.com",
+            messagingSenderId: "753343096382",
+            appId: "1:753343096382:android:5174bd75dce635ff4d936f"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        const loginForm = document.getElementById('login-form');
+        const usernameInput = document.getElementById('username-input');
+        const profilePicOptions = document.getElementById('profile-pic-options');
+        const loginContainer = document.getElementById('login-container');
+        const roomSelectionContainer = document.getElementById('room-selection-container');
+        const messagesContainer = document.getElementById('messages-container');
+        const messageForm = document.getElementById('message-form');
+        const messageInput = document.getElementById('message-input');
+        const logoutBtn = document.getElementById('logout-btn');
+        const chatHeader = document.getElementById('chat-header');
+        
+        const joinRoomBtn = document.getElementById('join-room-btn');
+        const createRoomBtn = document.getElementById('create-room-btn');
+        const roomCodeInput = document.getElementById('room-code-input');
+
+        let currentUser = { name: null, profilePicUrl: null };
+        let selectedProfilePicUrl = null;
+        let currentRoomId = null;
+        let messagesRef = null;
+
+        const storedUser = localStorage.getItem('chat_user');
+        if (storedUser) {
+            currentUser = JSON.parse(storedUser);
+            showRoomSelectionScreen();
+        }
+
+        profilePicOptions.addEventListener('click', (event) => {
+            const clickedImage = event.target.closest('.profile-pic-option');
+            if (clickedImage) {
+                document.querySelectorAll('.profile-pic-option').forEach(img => {
+                    img.classList.remove('selected');
+                });
+                clickedImage.classList.add('selected');
+                selectedProfilePicUrl = clickedImage.dataset.url;
+            }
+        });
+
+        loginForm.addEventListener('submit', (event) => {
+            event.preventDefault();
+            const name = usernameInput.value.trim();
+
+            if (!name) {
+                alert('Nama tidak boleh kosong!');
+                return;
+            }
+            if (!selectedProfilePicUrl) {
+                alert('Harap pilih foto profil!');
+                return;
+            }
+
+            currentUser.name = name;
+            currentUser.profilePicUrl = selectedProfilePicUrl;
+
+            localStorage.setItem('chat_user', JSON.stringify(currentUser));
+            showRoomSelectionScreen();
+        });
+
+        logoutBtn.addEventListener('click', () => {
+            if (messagesContainer.style.display === 'block') {
+                showRoomSelectionScreen();
+                if (messagesRef) {
+                    messagesRef.off();
+                }
+            } else {
+                localStorage.removeItem('chat_user');
+                currentUser = { name: null, profilePicUrl: null };
+                currentRoomId = null;
+                showLoginScreen();
+            }
+        });
+
+        function showLoginScreen() {
+            loginContainer.style.display = 'flex';
+            roomSelectionContainer.style.display = 'none';
+            messagesContainer.style.display = 'none';
+            messageForm.style.display = 'none';
+            logoutBtn.style.display = 'none';
+            chatHeader.textContent = 'Live Chat By SamuDev 🐉';
+            usernameInput.value = '';
+            document.querySelectorAll('.profile-pic-option').forEach(img => {
+                img.classList.remove('selected');
+            });
+        }
+
+        function showRoomSelectionScreen() {
+            loginContainer.style.display = 'none';
+            roomSelectionContainer.style.display = 'flex';
+            messagesContainer.style.display = 'none';
+            messageForm.style.display = 'none';
+            logoutBtn.style.display = 'block';
+            chatHeader.textContent = 'Pilih Ruang Obrolan';
+        }
+
+        function showChatScreen() {
+            loginContainer.style.display = 'none';
+            roomSelectionContainer.style.display = 'none';
+            messagesContainer.style.display = 'block';
+            messageForm.style.display = 'flex';
+            logoutBtn.style.display = 'block';
+            chatHeader.textContent = `Ruang: ${currentRoomId}`;
+        }
+
+        function generateRandomCode(length = 6) {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let result = '';
+            for (let i = 0; i < length; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return result;
+        }
+
+        createRoomBtn.addEventListener('click', () => {
+            const newRoomCode = generateRandomCode();
+            database.ref('rooms').child(newRoomCode).set({
+                createdAt: firebase.database.ServerValue.TIMESTAMP
+            }).then(() => {
+                joinRoom(newRoomCode);
+            }).catch(error => {
+                alert("Gagal membuat ruang obrolan.");
+                console.error(error);
+            });
+        });
+
+        joinRoomBtn.addEventListener('click', () => {
+            const roomCode = roomCodeInput.value.trim().toUpperCase();
+            if (roomCode) {
+                database.ref('rooms').child(roomCode).once('value', snapshot => {
+                    if (snapshot.exists()) {
+                        joinRoom(roomCode);
+                    } else {
+                        alert('Kode ruang tidak ditemukan!');
+                    }
+                });
+            } else {
+                alert('Masukkan kode ruang!');
+            }
+        });
+
+        function joinRoom(roomId) {
+            currentRoomId = roomId;
+            showChatScreen();
+            setupRoomListeners();
+        }
+
+        function setupRoomListeners() {
+            if (messagesRef) {
+                messagesRef.off();
+                messagesContainer.innerHTML = '';
+            }
+
+            messagesRef = database.ref(`rooms/${currentRoomId}/messages`).limitToLast(100);
+
+            messagesRef.on('child_added', (snapshot) => {
+                const messageElement = createMessageElement(snapshot);
+                if (messageElement) {
+                    messagesContainer.appendChild(messageElement);
+                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                }
+            });
+
+            messagesRef.on('child_removed', (oldSnapshot) => {
+                const messageKey = oldSnapshot.key;
+                const messageElement = document.querySelector(`.message[data-key="${messageKey}"]`);
+                if (messageElement) {
+                    messageElement.remove();
+                }
+            });
+        }
+
+        messageForm.addEventListener('submit', (event) => {
+            event.preventDefault();
+            const text = messageInput.value.trim();
+
+            if (text && currentRoomId) {
+                database.ref(`rooms/${currentRoomId}/messages`).push({
+                    name: currentUser.name,
+                    text: text,
+                    profilePicUrl: currentUser.profilePicUrl,
+                    timestamp: Date.now()
+                });
+                messageInput.value = '';
+                messageInput.focus();
+            } else {
+                alert('Pesan tidak boleh kosong atau Anda belum bergabung dengan ruang!');
+            }
+        });
+
+        function createMessageElement(snapshot) {
+            const message = snapshot.val();
+            const messageKey = snapshot.key;
+            if (!message) return null;
+
+            const messageWrapper = document.createElement('div');
+            messageWrapper.classList.add('message');
+            messageWrapper.dataset.key = messageKey;
+
+            const profilePic = document.createElement('img');
+            profilePic.classList.add('message-profile-pic');
+            profilePic.src = message.profilePicUrl || 'https://via.placeholder.com/40';
+            profilePic.alt = `${message.name}'s profile picture`;
+            messageWrapper.appendChild(profilePic);
+
+            const messageContent = document.createElement('div');
+            messageContent.classList.add('message-content');
+
+            const nameElement = document.createElement('strong');
+            nameElement.textContent = message.name;
+            const textElement = document.createElement('span');
+            textElement.textContent = message.text;
+
+            messageContent.appendChild(nameElement);
+            messageContent.appendChild(textElement);
+            messageWrapper.appendChild(messageContent);
+
+            const deleteButton = document.createElement('button');
+            deleteButton.textContent = 'x';
+            deleteButton.classList.add('delete-btn');
+
+            if (currentUser.name === message.name) {
+                deleteButton.addEventListener('click', () => {
+                    if (confirm('Apakah Anda yakin ingin menghapus pesan ini?')) {
+                        const messageRef = database.ref(`rooms/${currentRoomId}/messages`).child(messageKey);
+                        messageRef.remove()
+                            .then(() => {
+                                console.log("Pesan berhasil dihapus!");
+                            })
+                            .catch((error) => {
+                                console.error("Error saat menghapus pesan: ", error);
+                            });
+                    }
+                });
+                messageWrapper.appendChild(deleteButton);
+            }
+
+            return messageWrapper;
+        }
+    </script>
+</body>
+</html>
